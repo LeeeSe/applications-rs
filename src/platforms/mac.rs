@@ -6,6 +6,7 @@ use crate::utils::mac::{
 };
 use anyhow::Result;
 use cocoa::base::id;
+use cocoa::foundation::NSInteger;
 use objc;
 use objc::{class, msg_send, runtime::Object, sel, sel_impl};
 use std::fs::File;
@@ -317,6 +318,30 @@ pub fn get_running_apps() -> Vec<App> {
     }
 }
 
+pub fn get_running_dock_apps() -> Vec<App> {
+    unsafe {
+        let shared_workspace: id = msg_send![class!(NSWorkspace), sharedWorkspace];
+        let running_apps: id = msg_send![shared_workspace, runningApplications];
+        let count: usize = msg_send![running_apps, count];
+        let mut apps: Vec<App> = Vec::new();
+        for i in 0..count {
+            let app: id = msg_send![running_apps, objectAtIndex: i];
+            let activation_policy: NSInteger = msg_send![app, activationPolicy];
+            if activation_policy == 0 {
+                let bundle_url: id = msg_send![app, bundleURL];
+                let path: id = msg_send![bundle_url, path];
+                let path_str = nsstring_to_string(path).unwrap();
+                let app_path = MacAppPath::new(PathBuf::from(path_str));
+                match app_path.to_app() {
+                    Some(app) => apps.push(app),
+                    None => {}
+                }
+            }
+        }
+        apps
+    }
+}
+
 impl AppTrait for App {
     fn load_icon(&self) -> Option<RustImageData> {
         if let Some(icon_path) = &self.icon_path {
@@ -365,6 +390,12 @@ mod tests {
     #[test]
     fn test_get_running_apps() {
         let apps = get_running_apps();
+        println!("Apps: {:#?}", apps);
+    }
+
+    #[test]
+    fn test_get_running_dock_apps() {
+        let apps = get_running_dock_apps();
         println!("Apps: {:#?}", apps);
     }
 

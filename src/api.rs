@@ -1,10 +1,13 @@
 use crate::common::{App, AppInfo, AppInfoContext};
-use crate::platforms::{get_all_apps, get_frontmost_application, get_running_apps, open_file_with};
+use crate::platforms::{
+    get_all_apps, get_frontmost_application, get_running_apps, get_running_dock_apps,
+    open_file_with,
+};
+use anyhow::Result;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::{self, Arc, Mutex};
 use std::thread;
-use anyhow::Result;
 
 impl AppInfoContext {
     pub fn new() -> Self {
@@ -49,6 +52,10 @@ impl AppInfo for AppInfoContext {
 
     fn get_running_apps(&self) -> Vec<App> {
         get_running_apps()
+    }
+
+    fn get_running_dock_apps(&self) -> Vec<App> {
+        get_running_dock_apps()
     }
 
     fn get_frontmost_application(&self) -> Result<App> {
